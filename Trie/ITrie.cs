@@ -7,7 +7,7 @@ public interface ITrie
     void AddWord(string word);
     string GreatestCommonPrefix();
     IEnumerable<string> WordWithPrefix(string prefix);
-    bool ContainWord(string word);
+    bool ContainsWord(string word);
     void Clear();
     int Count { get; }
     public NodeTrie this[char value]
