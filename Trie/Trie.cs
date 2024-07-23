@@ -23,27 +23,28 @@ public class Trie : ITrie.ITrie
 
     public Trie()
     {
-        Root = new NodeTrie('^');
+        Root = new NodeTrie('\0', 0);
     }
     public int Count => count;
     private int count { get; set; }
     public void AddWord(string word)
     {
+        word = word.ToUpper();
         addWord(word, 0, Root);
         count += 1;
     }
-    private void addWord(string word, int pos, NodeTrie current)
+    private void addWord(string word, int pos, NodeTrie current, int deep = 0)
     {
-        if (current.Children.TryGetValue(word[pos], out var child))
+        if (pos <= word.Length - 1 &&  current.Children.TryGetValue(word[pos], out var child))
         {
-            addWord(word, pos + 1, child);
+            addWord(word, pos + 1, child, child.Deep);
         }
         else
         {
             var nt = current;
             for (int i = pos; i < word.Length; i++)
             {
-                nt.Children[word[i]] = new NodeTrie(word[i]);
+                nt.Children[word[i]] = new NodeTrie(word[i], ++deep);
                 nt = nt[word[i]];
             }
             nt.EndOfWord = true;
@@ -71,11 +72,57 @@ public class Trie : ITrie.ITrie
 
     public string GreatestCommonPrefix()
     {
-        throw new NotImplementedException();
+        NodeTrie best = null!;
+        int bestDeep = int.MinValue;
+        int currentDeep = 0;
+        foreach (var item in Root.Children.Values)
+        {
+            currentDeep = GetDeep(item);
+            if (bestDeep < currentDeep)
+            {
+                best = item;
+                bestDeep = currentDeep;
+            }
+        }
+        string prefix = "";
+        while (bestDeep > 1)
+        {
+            prefix += best.Value;
+            best = best.Children.Values.First();
+            bestDeep--;
+        }
+        return best == null ? prefix : prefix + best.Value;
+    }
+    private int GetDeep(NodeTrie current)
+    {
+        if (current.Children.Count == 0 || current.Children.Count > 1) return current.Deep;
+        return GetDeep(current.Children.Values.First());
     }
 
     public IEnumerable<string> WordWithPrefix(string prefix)
     {
-        throw new NotImplementedException();
+        var endPrefix = EndOfPrefix(prefix, Root);
+        return WordWithPrefix(prefix, endPrefix);
+    }
+    private IEnumerable<string> WordWithPrefix(string prefix, NodeTrie current)
+    {
+        foreach (var item in current.Children.Values)
+        {
+            string newPrefix = prefix + item.Value;
+            if(item.EndOfWord) yield return newPrefix;
+            foreach (var word in WordWithPrefix(newPrefix, item)) yield return word;
+        }
+    }
+    private NodeTrie EndOfPrefix(string prefix, NodeTrie current)
+    {
+        for (int i = 0; i < prefix.Length; i++)
+        {
+            if (!current.Children.TryGetValue(prefix[i], out var node))
+            {
+                return null!;
+            }
+            current = node;
+        }
+        return current;
     }
 }
